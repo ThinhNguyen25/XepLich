@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Công cụ xếp lịch làm việc</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-4 text-center">Công cụ xếp lịch làm việc hàng tuần</h1>
+
+    <!-- Hướng dẫn sử dụng -->
+    <div class="mb-6 bg-white p-4 rounded shadow">
+      <h2 class="text-xl font-semibold mb-2">Hướng dẫn sử dụng</h2>
+      <p class="mb-2">Công cụ này giúp bạn xếp lịch làm việc tự động cho nhân viên. Dưới đây là các bước sử dụng:</p>
+      <ol class="list-decimal ml-5">
+        <li><strong>Thêm nhân viên</strong>: Nhập tên và vai trò (VD: Nhân viên, Quản lý), nhấn "Thêm".</li>
+        <li><strong>Đăng ký ca khả dụng</strong>:
+          <ul class="list-disc ml-5">
+            <li><strong>Thủ công</strong>: Chọn nhân viên, ngày, ca (Sáng/Chiều/Tối), nhấn "Thêm ca".</li>
+            <li><strong>Từ nội dung</strong>: Dán nội dung theo định dạng (Tên: An, Sáng: t2 t3..., Chiều: t6..., Tối: ...), nhấn "Thêm từ nội dung". Ví dụ:
+              <pre class="bg-gray-200 p-2 rounded mt-1">Tên: An\nSáng: t2 t3 t4 t5\nChiều: t6 t7 cn\nTối:</pre>
+            </li>
+          </ul>
+        </li>
+        <li><strong>Tạo lịch</strong>: Nhấn "Tạo lịch tự động". Lịch sẽ được xếp để giảm ca trống nhất có thể.</li>
+        <li><strong>Chỉnh sửa</strong>: Sửa/xóa nhân viên hoặc ca khả dụng nếu cần.</li>
+      </ol>
+      <p class="mt-2 text-sm text-red-500">Lưu ý: Dữ liệu được lưu trên trình duyệt của bạn (localStorage). Nếu xóa bộ nhớ trình duyệt, dữ liệu sẽ mất.</p>
+    </div>
+
+    <!-- Phần quản lý nhân viên -->
+    <div class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">Quản lý nhân viên</h2>
+      <div class="flex gap-2 mb-2">
+        <input id="employeeName" type="text" placeholder="Tên nhân viên" class="border p-2 rounded">
+        <input id="employeeRole" type="text" placeholder="Vai trò" class="border p-2 rounded">
+        <button onclick="addEmployee()" class="bg-blue-500 text-white p-2 rounded">Thêm</button>
+      </div>
+      <table class="w-full border-collapse border">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border p-2">Tên</th>
+            <th class="border p-2">Vai trò</th>
+            <th class="border p-2">Hành động</th>
+          </tr>
+        </thead>
+        <tbody id="employeeTable"></tbody>
+      </table>
+    </div>
+
+    <!-- Phần đăng ký ca khả dụng -->
+    <div class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">Đăng ký ca khả dụng</h2>
+      <div class="flex gap-2 mb-2">
+        <select id="employeeSelect" class="border p-2 rounded">
+          <option value="">Chọn nhân viên</option>
+        </select>
+        <select id="daySelect" class="border p-2 rounded">
+          <option value="Thứ 2">Thứ 2</option>
+          <option value="Thứ 3">Thứ 3</option>
+          <option value="Thứ 4">Thứ 4</option>
+          <option value="Thứ 5">Thứ 5</option>
+          <option value="Thứ 6">Thứ 6</option>
+          <option value="Thứ 7">Thứ 7</option>
+          <option value="Chủ nhật">Chủ nhật</option>
+        </select>
+        <select id="shiftSelect" class="border p-2 rounded">
+          <option value="Sáng">Sáng</option>
+          <option value="Chiều">Chiều</option>
+          <option value="Tối">Tối</option>
+        </select>
+        <button onclick="addAvailability()" class="bg-blue-500 text-white p-2 rounded">Thêm ca</button>
+      </div>
+      <div class="mb-2">
+        <label class="block mb-1">Dán nội dung TXT (Tên: An, Sáng: t2 t3..., Chiều: t6..., Tối: ...):</label>
+        <textarea id="txtInput" rows="5" class="w-full border p-2 rounded" placeholder="Tên: An\nSáng: t2 t3 t4 t5\nChiều: t6 t7 cn\nTối:"></textarea>
+        <button onclick="importAvailability()" class="bg-blue-500 text-white p-2 rounded mt-1">Thêm từ nội dung</button>
+      </div>
+      <table class="w-full border-collapse border">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border p-2">Nhân viên</th>
+            <th class="border p-2">Ngày</th>
+            <th class="border p-2">Ca</th>
+            <th class="border p-2">Hành động</th>
+          </tr>
+        </thead>
+        <tbody id="availabilityTable"></tbody>
+      </table>
+    </div>
+
+    <!-- Phần lịch làm việc -->
+    <div class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">Lịch làm việc hàng tuần</h2>
+      <button onclick="generateSchedule()" class="bg-green-500 text-white p-2 rounded mb-2">Tạo lịch tự động</button>
+      <table class="w-full border-collapse border">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border p-2">Ca/Ngày</th>
+            <th class="border p-2">Thứ 2</th>
+            <th class="border p-2">Thứ 3</th>
+            <th class="border p-2">Thứ 4</th>
+            <th class="border p-2">Thứ 5</th>
+            <th class="border p-2">Thứ 6</th>
+            <th class="border p-2">Thứ 7</th>
+            <th class="border p-2">Chủ nhật</th>
+          </tr>
+        </thead>
+        <tbody id="scheduleTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let employees = JSON.parse(localStorage.getItem('employees')) || [];
+    let availability = JSON.parse(localStorage.getItem('availability')) || [];
+    let schedule = JSON.parse(localStorage.getItem('schedule')) || {};
+
+    // Danh sách màu cố định cho nhân viên
+    const colors = [
+      'text-blue-500', 'text-green-500', 'text-purple-500', 'text-orange-500',
+      'text-pink-500', 'text-teal-500', 'text-indigo-500', 'text-yellow-600'
+    ];
+    let employeeColors = JSON.parse(localStorage.getItem('employeeColors')) || {};
+
+    // Gán màu cho nhân viên
+    function assignColorToEmployee(name) {
+      if (!employeeColors[name]) {
+        const usedColors = Object.values(employeeColors);
+        const availableColors = colors.filter(color => !usedColors.includes(color));
+        const newColor = availableColors.length > 0 ? availableColors[0] : colors[Object.keys(employeeColors).length % colors.length];
+        employeeColors[name] = newColor;
+        localStorage.setItem('employeeColors', JSON.stringify(employeeColors));
+      }
+      return employeeColors[name];
+    }
+
+    // Cập nhật danh sách nhân viên trong dropdown
+    function updateEmployeeSelect() {
+      const select = document.getElementById('employeeSelect');
+      select.innerHTML = '<option value="">Chọn nhân viên</option>';
+      employees.forEach(emp => {
+        const option = document.createElement('option');
+        option.value = emp.name;
+        option.textContent = emp.name;
+        select.appendChild(option);
+      });
+    }
+
+    // Thêm nhân viên
+    function addEmployee() {
+      const name = document.getElementById('employeeName').value.trim();
+      const role = document.getElementById('employeeRole').value.trim();
+      if (name && role && !employees.some(emp => emp.name === name)) {
+        employees.push({ name, role });
+        assignColorToEmployee(name);
+        localStorage.setItem('employees', JSON.stringify(employees));
+        updateEmployeeTable();
+        updateEmployeeSelect();
+        document.getElementById('employeeName').value = '';
+        document.getElementById('employeeRole').value = '';
+      }
+    }
+
+    // Sửa nhân viên
+    function editEmployee(index) {
+      const name = prompt('Nhập tên mới:', employees[index].name);
+      const role = prompt('Nhập vai trò mới:', employees[index].role);
+      if (name && role && !employees.some((emp, i) => i !== index && emp.name === name.trim())) {
+        const oldName = employees[index].name;
+        employees[index] = { name: name.trim(), role: role.trim() };
+        availability = availability.map(avail => 
+          avail.employee === oldName ? { ...avail, employee: name.trim() } : avail
+        );
+        if (oldName !== name.trim()) {
+          employeeColors[name.trim()] = employeeColors[oldName];
+          delete employeeColors[oldName];
+          localStorage.setItem('employeeColors', JSON.stringify(employeeColors));
+        }
+        localStorage.setItem('employees', JSON.stringify(employees));
+        localStorage.setItem('availability', JSON.stringify(availability));
+        updateEmployeeTable();
+        updateEmployeeSelect();
+        updateAvailabilityTable();
+        updateScheduleTable();
+      }
+    }
+
+    // Xóa nhân viên
+    function deleteEmployee(index) {
+      const name = employees[index].name;
+      employees.splice(index, 1);
+      availability = availability.filter(avail => avail.employee !== name);
+      delete employeeColors[name];
+      localStorage.setItem('employeeColors', JSON.stringify(employeeColors));
+      localStorage.setItem('employees', JSON.stringify(employees));
+      localStorage.setItem('availability', JSON.stringify(availability));
+      updateEmployeeTable();
+      updateEmployeeSelect();
+      updateAvailabilityTable();
+      updateScheduleTable();
+    }
+
+    // Thêm ca khả dụng
+    function addAvailability() {
+      const employee = document.getElementById('employeeSelect').value;
+      const day = document.getElementById('daySelect').value;
+      const shift = document.getElementById('shiftSelect').value;
+      if (employee && day && shift) {
+        availability.push({ employee, day, shift });
+        localStorage.setItem('availability', JSON.stringify(availability));
+        updateAvailabilityTable();
+      }
+    }
+
+    // Nhập ca khả dụng từ nội dung textarea
+    function importAvailability() {
+      const text = document.getElementById('txtInput').value;
+      if (!text.trim()) return;
+
+      const validShifts = ['Sáng', 'Chiều', 'Tối'];
+      const dayMap = {
+        't2': 'Thứ 2', 't3': 'Thứ 3', 't4': 'Thứ 4', 't5': 'Thứ 5',
+        't6': 'Thứ 6', 't7': 'Thứ 7', 'cn': 'Chủ nhật'
+      };
+
+      const rows = text.split('\n').map(row => row.trim());
+      if (!rows[0].startsWith('Tên:') || rows[0].length <= 5) return;
+      const employee = rows[0].slice(5).trim();
+      if (!employees.some(emp => emp.name === employee)) return;
+
+      for (let i = 1; i < rows.length && i <= 3; i++) {
+        if (!rows[i] || !rows[i].startsWith(validShifts[i-1] + ':')) continue;
+        const daysStr = rows[i].slice(validShifts[i-1].length + 1).trim();
+        if (!daysStr) continue;
+
+        const days = daysStr.split(' ').filter(d => d);
+        days.forEach(day => {
+          if (dayMap[day.toLowerCase()]) {
+            availability.push({
+              employee,
+              day: dayMap[day.toLowerCase()],
+              shift: validShifts[i-1]
+            });
+          }
+        });
+      }
+
+      localStorage.setItem('availability', JSON.stringify(availability));
+      updateAvailabilityTable();
+      document.getElementById('txtInput').value = '';
+    }
+
+    // Sửa ca khả dụng
+    function editAvailability(index) {
+      const avail = availability[index];
+      const newEmployee = prompt('Nhập tên nhân viên mới:', avail.employee);
+      const newDay = prompt('Nhập ngày mới:', avail.day);
+      const newShift = prompt('Nhập ca mới:', avail.shift);
+
+      if (newEmployee && newDay && newShift && employees.some(emp => emp.name === newEmployee)) {
+        availability[index] = {
+          employee: newEmployee,
+          day: newDay,
+          shift: newShift
+        };
+        localStorage.setItem('availability', JSON.stringify(availability));
+        updateAvailabilityTable();
+        updateScheduleTable();
+      }
+    }
+
+    // Xóa ca khả dụng
+    function deleteAvailability(index) {
+      availability.splice(index, 1);
+      localStorage.setItem('availability', JSON.stringify(availability));
+      updateAvailabilityTable();
+      updateScheduleTable();
+    }
+
+    // Cập nhật bảng nhân viên
+    function updateEmployeeTable() {
+      const table = document.getElementById('employeeTable');
+      table.innerHTML = '';
+      employees.forEach((emp, index) => {
+        const row = table.insertRow();
+        row.innerHTML = `
+          <td class="border p-2 ${employeeColors[emp.name] || ''}">${emp.name}</td>
+          <td class="border p-2">${emp.role}</td>
+          <td class="border p-2">
+            <button onclick="editEmployee(${index})" class="bg-yellow-500 text-white p-1 rounded mr-1">Sửa</button>
+            <button onclick="deleteEmployee(${index})" class="bg-red-500 text-white p-1 rounded">Xóa</button>
+          </td>
+        `;
+      });
+    }
+
+    // Cập nhật bảng ca khả dụng với màu cho nhân viên
+    function updateAvailabilityTable() {
+      const table = document.getElementById('availabilityTable');
+      table.innerHTML = '';
+      availability.forEach((avail, index) => {
+        const row = table.insertRow();
+        row.innerHTML = `
+          <td class="border p-2 ${employeeColors[avail.employee] || ''}">${avail.employee}</td>
+          <td class="border p-2">${avail.day}</td>
+          <td class="border p-2">${avail.shift}</td>
+          <td class="border p-2">
+            <button onclick="editAvailability(${index})" class="bg-yellow-500 text-white p-1 rounded mr-1">Sửa</button>
+            <button onclick="deleteAvailability(${index})" class="bg-red-500 text-white p-1 rounded">Xóa</button>
+          </td>
+        `;
+      });
+    }
+
+    // Tạo lịch tự động
+    function generateSchedule() {
+      const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+      const shifts = ['Sáng', 'Chiều', 'Tối'];
+      schedule = { Sáng: {}, Chiều: {}, Tối: {} };
+
+      // Khởi tạo lịch trống
+      days.forEach(day => {
+        shifts.forEach(shift => {
+          if (shift === 'Tối' && (day === 'Thứ 6' || day === 'Thứ 7' || day === 'Chủ nhật')) {
+            schedule[shift][day] = ['Trống', 'Trống']; // [nhân viên chính, nhân viên hỗ trợ]
+          } else {
+            schedule[shift][day] = 'Trống';
+          }
+        });
+      });
+
+      // Đếm số ca được phân cho mỗi nhân viên
+      const assignedShifts = {};
+      employees.forEach(emp => assignedShifts[emp.name] = 0);
+
+      // Giai đoạn 1: Xếp nhân viên chính cho tất cả các ca
+      const allSlots = [];
+      days.forEach(day => shifts.forEach(shift => allSlots.push({ day, shift })));
+      allSlots.sort(() => Math.random() - 0.5);
+
+      allSlots.forEach(slot => {
+        const { day, shift } = slot;
+        const candidates = availability.filter(avail => avail.day === day && avail.shift === shift);
+        if (candidates.length === 0) return;
+
+        let selected = null;
+        let minShifts = Infinity;
+        candidates.forEach(cand => {
+          if (assignedShifts[cand.employee] < minShifts) {
+            selected = cand.employee;
+            minShifts = assignedShifts[cand.employee];
+          }
+        });
+
+        if (selected) {
+          if (shift === 'Tối' && (day === 'Thứ 6' || day === 'Thứ 7' || day === 'Chủ nhật')) {
+            // Kiểm tra nhân viên chưa được xếp vào ngày này
+            const isAlreadyAssigned = Object.values(schedule).some(sch => {
+              if (Array.isArray(sch[day])) {
+                return sch[day].includes(selected);
+              }
+              return sch[day] === selected;
+            });
+            if (!isAlreadyAssigned) {
+              schedule[shift][day][0] = selected; // Gán nhân viên chính
+              assignedShifts[selected]++;
+            }
+          } else {
+            // Kiểm tra nhân viên chưa được xếp vào ngày này
+            const isAlreadyAssigned = Object.values(schedule).some(sch => {
+              if (Array.isArray(sch[day])) {
+                return sch[day].includes(selected);
+              }
+              return sch[day] === selected;
+            });
+            if (!isAlreadyAssigned) {
+              schedule[shift][day] = selected;
+              assignedShifts[selected]++;
+            }
+          }
+        }
+      });
+
+      // Giai đoạn 2: Xếp nhân viên hỗ trợ cho ca tối T6, T7, CN
+      const nightShiftsToFill = [
+        { day: 'Thứ 6', shift: 'Tối' },
+        { day: 'Thứ 7', shift: 'Tối' },
+        { day: 'Chủ nhật', shift: 'Tối' }
+      ];
+
+      nightShiftsToFill.forEach(slot => {
+        const { day, shift } = slot;
+        if (schedule[shift][day][0] === 'Trống') return; // Nếu không có nhân viên chính, bỏ qua
+
+        const candidates = availability.filter(avail => avail.day === day && avail.shift === shift);
+        const availableCandidates = candidates.filter(cand => {
+          // Loại bỏ nhân viên chính và nhân viên đã được xếp vào ngày này
+          return cand.employee !== schedule[shift][day][0] && !Object.values(schedule).some(sch => {
+            if (Array.isArray(sch[day])) {
+              return sch[day].includes(cand.employee);
+            }
+            return sch[day] === cand.employee;
+          });
+        });
+
+        if (availableCandidates.length > 0) {
+          const selected = availableCandidates[Math.floor(Math.random() * availableCandidates.length)].employee;
+          schedule[shift][day][1] = selected; // Gán nhân viên hỗ trợ
+          assignedShifts[selected]++;
+        }
+      });
+
+      // Giai đoạn 3: Điền các ca trống còn lại (cho các ca khác)
+      allSlots.forEach(slot => {
+        const { day, shift } = slot;
+        if (shift === 'Tối' && (day === 'Thứ 6' || day === 'Thứ 7' || day === 'Chủ nhật')) return; // Bỏ qua ca tối T6, T7, CN
+        if (schedule[shift][day] !== 'Trống') return;
+
+        const candidates = availability.filter(avail => avail.day === day && avail.shift === shift);
+        const availableCandidates = candidates.filter(cand => {
+          return !Object.values(schedule).some(sch => {
+            if (Array.isArray(sch[day])) {
+              return sch[day].includes(cand.employee);
+            }
+            return sch[day] === cand.employee;
+          });
+        });
+
+        if (availableCandidates.length > 0) {
+          const selected = availableCandidates[Math.floor(Math.random() * availableCandidates.length)].employee;
+          schedule[shift][day] = selected;
+          assignedShifts[selected]++;
+        }
+      });
+
+      localStorage.setItem('schedule', JSON.stringify(schedule));
+      updateScheduleTable();
+    }
+
+    // Cập nhật bảng lịch với màu đỏ cho "Trống" và hiển thị nhân viên hỗ trợ
+    function updateScheduleTable() {
+      const table = document.getElementById('scheduleTable');
+      table.innerHTML = '';
+      const shifts = ['Sáng', 'Chiều', 'Tối'];
+      const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+      shifts.forEach(shift => {
+        const row = table.insertRow();
+        const cells = days.map(day => {
+          let value = schedule[shift][day] || 'Trống';
+          let displayText = '';
+          let className = '';
+
+          if (shift === 'Tối' && (day === 'Thứ 6' || day === 'Thứ 7' || day === 'Chủ nhật')) {
+            const mainEmployee = value[0];
+            const supportEmployee = value[1];
+            if (mainEmployee === 'Trống') {
+              displayText = 'Trống';
+              className = 'text-red-500';
+            } else {
+              const mainColor = employeeColors[mainEmployee] || '';
+              const supportText = supportEmployee === 'Trống' ? 'Trống' : supportEmployee;
+              const supportColor = supportEmployee === 'Trống' ? 'text-red-500' : (employeeColors[supportEmployee] || '');
+              displayText = `${mainEmployee} <span class="${supportColor}">(Hỗ trợ: ${supportText})</span>`;
+              className = mainColor;
+            }
+          } else {
+            displayText = value;
+            className = value === 'Trống' ? 'text-red-500' : (employeeColors[value] || '');
+          }
+
+          return `<td class="border p-2 ${className}">${displayText}</td>`;
+        });
+        row.innerHTML = `
+          <td class="border p-2">${shift}</td>
+          ${cells.join('')}
+        `;
+      });
+    }
+
+    // Khởi tạo
+    updateEmployeeTable();
+    updateEmployeeSelect();
+    updateAvailabilityTable();
+    updateScheduleTable();
+  </script>
+</body>
+</html>
